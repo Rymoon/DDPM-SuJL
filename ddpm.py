@@ -28,11 +28,11 @@ if not os.path.exists('samples'):
     os.mkdir('samples')
 
 # 基本配置
-imgs = list_pictures('/root/CelebA-HQ/train/', 'png')
-imgs += list_pictures('/root/CelebA-HQ/valid/', 'png')
+imgs = list_pictures('/home/yumeng/workspace/Dataset/CelebAHQ/data256x256/', 'jpg')
+imgs += list_pictures('/home/yumeng/workspace/Dataset/CelebAHQ/data256x256_valid/', 'jpg')
 np.random.shuffle(imgs)
 img_size = 128  # 如果只想快速实验，可以改为64
-batch_size = 64  # 如果显存不够，可以降低为32、16，但不建议低于16
+batch_size = 32  # 如果显存不够，可以降低为32、16，但不建议低于16
 embedding_size = 128
 channels = [1, 1, 2, 2, 4, 4]
 num_layers = len(channels) * 2 + 1
@@ -98,10 +98,13 @@ class GroupNorm(ScaleOffset):
     """定义GroupNorm，默认groups=32
     """
     def call(self, inputs):
-        inputs = K.reshape(inputs, (-1, 32), -1)
+        #inputs = K.reshape(inputs, (-1, 32), -1) #
+        old_shape = inputs.shape # my
+        inputs = K.reshape(inputs, (-1,32,old_shape[1],old_shape[2],old_shape[3])) #  my
         mean, variance = tf.nn.moments(inputs, axes=[1, 2, 3], keepdims=True)
         inputs = (inputs - mean) * tf.rsqrt(variance + 1e-6)
-        inputs = K.flatten(inputs, -2)
+        #inputs = K.flatten(inputs, -2)
+        inputs = K.reshape(inputs,(-1,old_shape[1],old_shape[2],old_shape[3]))# my
         return super(GroupNorm, self).call(inputs)
 
 
