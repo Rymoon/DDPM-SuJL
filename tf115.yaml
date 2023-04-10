@@ -3,6 +3,7 @@
     - tensorflow-gpu==1.15
     - keras==2.3.1
     - opencv-python
-    - bert4keras=0.11.1
+    # - bert4keras=0.11.4 from github
     - protobuf=3.19.4
     - tqdm
+    - ipykernel

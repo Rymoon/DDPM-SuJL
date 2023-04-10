@@ -158,61 +158,57 @@ def l2_loss(y_true, y_pred):
     return K.sum((y_true - y_pred)**2, axis=[1, 2, 3])
 
 
-def create_model_GLB():
-    """Depends on globals
-    """
-    # 搭建去噪模型
-    x_in = x = Input(shape=(img_size, img_size, 3))
-    t_in = Input(shape=(1,))
-    t = Embedding(input_dim=T, output_dim=embedding_size)(t_in)
-    t = Lambda(lambda t: t[:, None])(t)
+# 搭建去噪模型
+x_in = x = Input(shape=(img_size, img_size, 3))
+t_in = Input(shape=(1,))
+t = Embedding(input_dim=T, output_dim=embedding_size)(t_in)
+t = Lambda(lambda t: t[:, None])(t)
 
-    x = conv2d(x, embedding_size)
-    inputs, skip_pooling = [x], 0
+x = conv2d(x, embedding_size)
+inputs, skip_pooling = [x], 0
 
-    for i, ch in enumerate(channels):
-        for j in range(blocks):
-            x = residual_block(x, ch, t)
-            inputs.append(x)
-        if min(K.int_shape(x)[1:3]) > min_pixel:
-            x = AveragePooling2D((2, 2))(x)
-            inputs.append(x)
-        else:
-            skip_pooling += 1
+for i, ch in enumerate(channels):
+    for j in range(blocks):
+        x = residual_block(x, ch, t)
+        inputs.append(x)
+    if min(K.int_shape(x)[1:3]) > min_pixel:
+        x = AveragePooling2D((2, 2))(x)
+        inputs.append(x)
+    else:
+        skip_pooling += 1
 
-    x = residual_block(x, ch, t)
-    inputs.pop()
+x = residual_block(x, ch, t)
+inputs.pop()
 
-    for i, ch in enumerate(channels[::-1]):
-        if i >= skip_pooling:
-            x = UpSampling2D((2, 2))(x)
-            x = Add()([x, inputs.pop()])
-        for j in range(blocks):
-            xi = inputs.pop()
-            x = residual_block(x, K.int_shape(xi)[-1] // embedding_size, t)
-            x = Add()([x, xi])
+for i, ch in enumerate(channels[::-1]):
+    if i >= skip_pooling:
+        x = UpSampling2D((2, 2))(x)
+        x = Add()([x, inputs.pop()])
+    for j in range(blocks):
+        xi = inputs.pop()
+        x = residual_block(x, K.int_shape(xi)[-1] // embedding_size, t)
+        x = Add()([x, xi])
 
-    x = GroupNorm()(x)
-    x = conv2d(x, 3)
+x = GroupNorm()(x)
+x = conv2d(x, 3)
 
-    model = Model(inputs=[x_in, t_in], outputs=x)
-    model.summary()
+model = Model(inputs=[x_in, t_in], outputs=x)
+model.summary()
 
-    OPT = extend_with_layer_adaptation(Adam)
-    OPT = extend_with_piecewise_linear_lr(OPT)  # 此时就是LAMB优化器
-    OPT = extend_with_exponential_moving_average(OPT)  # 加上滑动平均
-    optimizer = OPT(
-        learning_rate=1e-3,
-        ema_momentum=0.9999,
-        exclude_from_layer_adaptation=['Norm', 'bias'],
-        lr_schedule={
-            4000: 1,  # Warmup步数
-            20000: 0.5,
-            40000: 0.1,
-        }
-    )
-    model.compile(loss=l2_loss, optimizer=optimizer)
-    return model
+OPT = extend_with_layer_adaptation(Adam)
+OPT = extend_with_piecewise_linear_lr(OPT)  # 此时就是LAMB优化器
+OPT = extend_with_exponential_moving_average(OPT)  # 加上滑动平均
+optimizer = OPT(
+    learning_rate=1e-3,
+    ema_momentum=0.9999,
+    exclude_from_layer_adaptation=['Norm', 'bias'],
+    lr_schedule={
+        4000: 1,  # Warmup步数
+        20000: 0.5,
+        40000: 0.1,
+    }
+)
+model.compile(loss=l2_loss, optimizer=optimizer)
 
 
 def sample(path=None, n=4, z_samples=None, t0=0):
@@ -277,16 +273,16 @@ class Trainer(Callback):
         optimizer.reset_old_weights()
 
 
-# if __name__ == '__main__':
-# 
-#     trainer = Trainer()
-#     model.fit(
-#         data_generator(),
-#         steps_per_epoch=2000,
-#         epochs=10000,  # 只是预先设置足够多的epoch数，可以自行Ctrl+C中断
-#         callbacks=[trainer]
-#     )
-# 
-# else:
-# 
-#     model.load_weights('/home/yumeng/workspace/DDPM-SuJL/model.ema.weights')
+if __name__ == '__main__':
+
+    trainer = Trainer()
+    model.fit(
+        data_generator(),
+        steps_per_epoch=2000,
+        epochs=10000,  # 只是预先设置足够多的epoch数，可以自行Ctrl+C中断
+        callbacks=[trainer]
+    )
+
+else:
+
+    model.load_weights('/home/yumeng/workspace/DDPM-SuJL/model.ema.weights')
