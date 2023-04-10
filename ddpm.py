@@ -98,13 +98,13 @@ class GroupNorm(ScaleOffset):
     """定义GroupNorm，默认groups=32
     """
     def call(self, inputs):
-        #inputs = K.reshape(inputs, (-1, 32), -1) #
-        old_shape = inputs.shape # my
-        inputs = K.reshape(inputs, (-1,32,old_shape[1],old_shape[2],old_shape[3])) #  my
+        inputs = K.reshape(inputs, (-1, 32), -1) #
+        #old_shape = tf.shape(inputs) # my
+        #inputs = K.reshape(inputs, (old_shape[0],old_shape[1],old_shape[2],-1,32)) #  my
         mean, variance = tf.nn.moments(inputs, axes=[1, 2, 3], keepdims=True)
         inputs = (inputs - mean) * tf.rsqrt(variance + 1e-6)
-        #inputs = K.flatten(inputs, -2)
-        inputs = K.reshape(inputs,(-1,old_shape[1],old_shape[2],old_shape[3]))# my
+        inputs = K.flatten(inputs, -2)
+        #inputs = K.reshape(inputs,(old_shape[0],old_shape[1],old_shape[2],-1))# my
         return super(GroupNorm, self).call(inputs)
 
 
