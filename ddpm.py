@@ -74,8 +74,9 @@ def imwrite(path, figure):
     figure = (figure + 1) / 2 * 255
     figure = np.round(figure, 0).astype('uint8')
     cv2.imwrite(path, figure)
+    
 
-
+    
 def data_generator():
     """图片读取
     """
