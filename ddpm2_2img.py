@@ -3,8 +3,13 @@
 # 这版U-Net结构尽量保持跟原版一致（除了没加Attention），效果相对更好，计算量也更大
 # 实验环境：tf 1.15 + keras 2.3.1 + bert4keras（当前Github最新版本，不能用pip安装的版本）
 # 博客：https://kexue.fm/archives/9152
+# Train on ONLY 1 image;
 
 import os
+gpuid = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpuid}"
+train_name = "ddpm2_2img"
+
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -24,15 +29,19 @@ import warnings
 
 warnings.filterwarnings("ignore")  # 忽略keras带来的满屏警告
 
-if not os.path.exists('samples'):
-    os.mkdir('samples')
+if not os.path.exists(f"{train_name}__samples"):
+    os.mkdir(f"{train_name}__samples")
 
 # 基本配置
-imgs = list_pictures('/home/yumeng/workspace/Dataset/CelebAHQ/data256x256/', 'jpg')
-imgs += list_pictures('/home/yumeng/workspace/Dataset/CelebAHQ/data256x256_valid/', 'jpg')
+_imgs = list_pictures('/home/yumeng/workspace/Dataset/CelebAHQ_2/', 'jpg')
+# repeat up to 10k
+n = len(_imgs)
+imgs = []
+for i in range(round(10000/n)+1):
+    imgs+=_imgs 
 np.random.shuffle(imgs)
 img_size = 128  # 如果只想快速实验，可以改为64
-batch_size = 32  # 如果显存不够，可以降低为16，但不建议低于16
+batch_size = 16  # 如果显存不够，可以降低为16，但不建议低于16
 embedding_size = 128
 channels = [1, 1, 2, 2, 4, 4]
 blocks = 2  # 如果显存不够，可以降低为1
@@ -266,11 +275,11 @@ class Trainer(Callback):
     """训练回调器
     """
     def on_epoch_end(self, epoch, logs=None):
-        model.save_weights('model.weights')
-        sample('samples/%05d.png' % (epoch + 1))
+        model.save_weights(f"{train_name}.weights")
+        sample(f"{train_name}__samples/{(epoch + 1):05d}.png")
         optimizer.apply_ema_weights()
-        model.save_weights('model.ema.weights')
-        sample('samples/%05d_ema.png' % (epoch + 1))
+        model.save_weights(f"{train_name}.ema.weights")
+        sample(f"{train_name}__samples/{(epoch + 1):05d}_ema.png")
         optimizer.reset_old_weights()
 
 
@@ -286,4 +295,4 @@ if __name__ == '__main__':
 
 else:
 
-    model.load_weights('model.ema.weights')
+    model.load_weights(f"{train_name}.ema.weights")
