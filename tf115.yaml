@@ -1,3 +1,9 @@
+# Tensorflow1.15 + python3.8 + cuda 12.1 runtime + Linux
+# python 3.7 will failed
+# tf1.15 defaultly only on cuda10. BUT rtx30xx need cu11+
+# pip install --user nvidia-pyindex
+# pip install --user nvidia-tensorflow[horovod]
+# The above will install cuda cudnn, tensorflow(cpu and gpu).
 - dependecies:
   - pip:
     - tensorflow-gpu==1.15
@@ -7,5 +13,6 @@
     - protobuf=3.19.4
     - tqdm
     - ipykernel
+    - ipython
     - regex
     - Levenshtein
