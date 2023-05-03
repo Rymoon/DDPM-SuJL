@@ -8,7 +8,7 @@ import os
 gpuid = "2"
 os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpuid}"
 
-from MyDDPM.apps.ddpm2_h import imwrite, list_pictures, imread
+from MyDDPM.apps.ddpm2_h import imwrite, list_pictures, imread, create_next_version_dir
 from MyDDPM.apps.rennet import call_by_inspect, getitems_as_dict, root_Results
 import MyDDPM.apps.rennet as rennet
 
@@ -17,24 +17,6 @@ import numpy as np
 import os
 from pathlib import Path
 
-from pathlib import Path
-
-def create_next_version_dir(path):
-    # Find all existing version directories
-    version_dirs = list(Path(path).glob('version_*'))
-
-    # If there are no existing version directories, create version_0
-    if not version_dirs:
-        next_version_dir = Path(path, 'version_0')
-        next_version_dir.mkdir(exist_ok=True)
-        return str(next_version_dir)
-
-    # Otherwise, find the highest existing version index and increment it
-    highest_index = max([int(d.name.split('_')[1]) for d in version_dirs])
-    next_version_index = highest_index + 1
-    next_version_dir = Path(path, f'version_{next_version_index}')
-    next_version_dir.mkdir(exist_ok=True)
-    return str(next_version_dir)
 
 
 def make_filetree(root_Results,*, train_name):

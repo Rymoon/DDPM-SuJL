@@ -2,12 +2,28 @@
 import cv2
 import numpy as np
 import warnings
-
+from pathlib import Path
 from keras_preprocessing.image import list_pictures
 
 warnings.filterwarnings("ignore")  # 忽略keras带来的满屏警告
 
 
+def create_next_version_dir(path):
+    # Find all existing version directories
+    version_dirs = list(Path(path).glob('version_*'))
+
+    # If there are no existing version directories, create version_0
+    if not version_dirs:
+        next_version_dir = Path(path, 'version_0')
+        next_version_dir.mkdir(exist_ok=True)
+        return str(next_version_dir)
+
+    # Otherwise, find the highest existing version index and increment it
+    highest_index = max([int(d.name.split('_')[1]) for d in version_dirs])
+    next_version_index = highest_index + 1
+    next_version_dir = Path(path, f'version_{next_version_index}')
+    next_version_dir.mkdir(exist_ok=True)
+    return str(next_version_dir)
 
 def imread(f, img_size, crop_size=None):
     """读取图片
