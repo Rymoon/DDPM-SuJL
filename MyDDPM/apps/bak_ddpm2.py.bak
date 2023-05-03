@@ -8,7 +8,7 @@ import os
 import cv2
 import numpy as np
 import tensorflow as tf
-from keras import backend as K
+from keras import backend as K # Notice backend refer to bert4keras not keras HERE.
 from keras.models import Model
 from keras.layers import *
 from keras.callbacks import Callback
@@ -27,24 +27,30 @@ warnings.filterwarnings("ignore")  # 忽略keras带来的满屏警告
 if not os.path.exists('samples'):
     os.mkdir('samples')
 
-# 基本配置
-imgs = list_pictures('/home/yumeng/workspace/Dataset/CelebAHQ/data256x256/', 'jpg')
-imgs += list_pictures('/home/yumeng/workspace/Dataset/CelebAHQ/data256x256_valid/', 'jpg')
-np.random.shuffle(imgs)
-img_size = 128  # 如果只想快速实验，可以改为64
-batch_size = 32  # 如果显存不够，可以降低为16，但不建议低于16
-embedding_size = 128
-channels = [1, 1, 2, 2, 4, 4]
-blocks = 2  # 如果显存不够，可以降低为1
 
-# 超参数选择
-T = 1000
-alpha = np.sqrt(1 - 0.02 * np.arange(1, T + 1) / T)
-beta = np.sqrt(1 - alpha**2)
-bar_alpha = np.cumprod(alpha)
-bar_beta = np.sqrt(1 - bar_alpha**2)
-sigma = beta.copy()
-# sigma *= np.pad(bar_beta[:-1], [1, 0]) / bar_beta
+
+def get_config():
+    """基本配置, return as dict
+    """
+    imgs = list_pictures('/home/yumeng/workspace/Dataset/CelebAHQ/data256x256/', 'jpg')
+    imgs += list_pictures('/home/yumeng/workspace/Dataset/CelebAHQ/data256x256_valid/', 'jpg')
+    np.random.shuffle(imgs)
+    img_size = 128  # 如果只想快速实验，可以改为64
+    batch_size = 32  # 如果显存不够，可以降低为16，但不建议低于16
+    embedding_size = 128
+    channels = [1, 1, 2, 2, 4, 4]
+    blocks = 2  # 如果显存不够，可以降低为1
+
+    # 超参数选择
+    T = 1000
+    alpha = np.sqrt(1 - 0.02 * np.arange(1, T + 1) / T)
+    beta = np.sqrt(1 - alpha**2)
+    bar_alpha = np.cumprod(alpha)
+    bar_beta = np.sqrt(1 - bar_alpha**2)
+    sigma = beta.copy()
+    # sigma *= np.pad(bar_beta[:-1], [1, 0]) / bar_beta
+    
+    return dict(locals())
 
 
 def imread(f, crop_size=None):

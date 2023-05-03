@@ -1,7 +1,7 @@
 *.pyc
 *.zip
-samples
 *.weights
 Results
-ddpm_1img__samples
-ddpm_2img__samples
+__pycache__
+.vscode
+*.egg-info

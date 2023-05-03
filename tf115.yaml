@@ -7,3 +7,5 @@
     - protobuf=3.19.4
     - tqdm
     - ipykernel
+    - regex
+    - Levenshtein
