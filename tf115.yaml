@@ -16,3 +16,4 @@
     - ipython
     - regex
     - Levenshtein
+    - matplotlib

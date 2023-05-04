@@ -7,10 +7,10 @@ Use FNN instead of Unet. Conv2D -> Conv1D.
 
 
 import os
-gpuid = "2"
+gpuid = "0"
 os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpuid}"
 
-from MyDDPM.apps.ddpm2_h import imwrite, vecread, create_next_version_dir
+from MyDDPM.apps.ddpm2_h import imwrite, create_next_version_dir
 from MyDDPM.apps.rennet import call_by_inspect, getitems_as_dict, root_Results
 import MyDDPM.apps.rennet as rennet
 
@@ -20,8 +20,7 @@ import os
 from pathlib import Path
 
 
-def get_model__vec(walker_dim =1):
-    pass
+
 
 
 def make_filetree(root_Results,*, train_name):
@@ -42,10 +41,12 @@ def make_filetree(root_Results,*, train_name):
 def get_config(train_name:str):
     """基本配置, return as dict
     """
-    
-    walker_dim =1 # insdead of img_size
-    batch_size = 16  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
-    embedding_size = 128
+    # tensor of NLC==batch_size, walker_dim, walker_ch
+    walker_dim =1 
+    walker_ch =1
+    n_pat = 1000
+    batch_size = 1000 # 10k floats
+    embedding_size = 32
     channels = [1, 1, 2, 2, 4, 4]
     blocks = 2  # 如果显存不够，可以降低为1
 
@@ -60,15 +61,15 @@ def get_config(train_name:str):
     
     return dict(locals())
 
-def get_vecs(_N=10000):
+def get_vecs(n_pat):
     """
-    _N different samples, 1,2,...,_N
+    n_pat different samples, 1,2,...,n_pat
     nparry of imgs: NLC
     Rescale to [-1,1]
     """
-    data = (np.arange(_N)+1)/_N # uniform 
+    data = (np.arange(n_pat)+1)/n_pat # uniform 
     data = data*2-1
-    data = data.reshape(_N,1,1)
+    data = data.reshape(n_pat,1,1)
     np.random.shuffle(data)
     return data
 
@@ -90,13 +91,13 @@ def data_generator(vecs,*, walker_dim, batch_size, T, bar_alpha, bar_beta):
 
 
 
-def sample(model, path=None, n=4, z_samples=None, t0=0, *, img_size, beta, bar_beta, alpha, sigma, T ):
+def sample(model, path=None, n=1000, z_samples=None, t0=0, *, walker_dim, walker_ch, beta, bar_beta, alpha, sigma, T ):
     """随机采样函数.
 
     Sample many numbers, draw histogram and estimate the fake samples.
     """
     if z_samples is None:
-        z_samples = np.random.randn(n**2, img_size, img_size, 3)
+        z_samples = np.random.randn(n, walker_dim, walker_ch)
     else:
         z_samples = z_samples.copy()
     for t in tqdm(range(t0, T), ncols=0):
@@ -108,13 +109,8 @@ def sample(model, path=None, n=4, z_samples=None, t0=0, *, img_size, beta, bar_b
     x_samples = np.clip(z_samples, -1, 1)
     if path is None:
         return x_samples
-    figure = np.zeros((img_size * n, img_size * n, 3))
-    for i in range(n):
-        for j in range(n):
-            digit = x_samples[i * n + j]
-            figure[i * img_size:(i + 1) * img_size,
-                   j * img_size:(j + 1) * img_size] = digit
-    imwrite(path, figure)
+    else:
+        np.save(path,x_samples)
 
 
 
@@ -122,23 +118,23 @@ if __name__ == '__main__':
     DEBUG = True
     train_name = "ddpm2_v_1d" if not DEBUG else "ddpm2_v_1d"
     
-    from MyDDPM.apps.ddpm2_m import get_model, Trainer
+    from MyDDPM.apps.ddpm2_m import get_model__vec, Trainer__vec
     config = get_config(train_name)
     
     logdir = make_filetree(root_Results,train_name=train_name)
     
-    vecs = get_vecs()
-    model = call_by_inspect( get_model, config)
+    vecs = get_vecs(n_pat=config["n_pat"])
+    model = call_by_inspect(get_model__vec, config)
     
     # model.load_weights('model.ema.weights') # if want continue
     
-    trainer = Trainer(model, model.optimizer, 
-                    lambda model, path: sample(model, path, n=4, z_samples=None, t0=0, img_size=config["img_size"], beta=config["beta"], bar_beta=config["bar_beta"], alpha=config["alpha"], sigma=config["sigma"], T=config["T"]), 
+    trainer = Trainer__vec(model, model.optimizer, 
+                    lambda model, path: call_by_inspect(sample, config, model=model, path=path, n=8*config["n_pat"], z_samples=None, t0=0), 
                     logdir)
     model.fit(
         call_by_inspect(data_generator, config,  vecs=vecs),
         steps_per_epoch=2000,
-        epochs=10000 if not DEBUG else 14,  # 只是预先设置足够多的epoch数，可以自行Ctrl+C中断
+        epochs=5000 if not DEBUG else 14,  # 只是预先设置足够多的epoch数，可以自行Ctrl+C中断
         callbacks=[trainer]
     )
     

@@ -1,11 +1,14 @@
 from setuptools import find_packages, setup
 from pathlib import Path
 import re
+import json
 
 name = "MyDDPM"
 version = "0.1"
+ppkg = Path(Path(__file__).parent,name)
 
-p = Path(Path(__file__).parent,name,"__init__.py")
+# Create and update __init__.py
+p = Path(ppkg,"__init__.py")
 s_ver = f"__version__='{version}'\n"
 if not p.exists():
     with open(p,"x") as f:
@@ -23,6 +26,17 @@ else:
     with open(p,"w") as f:
         f.write(s)
 
+# Create apps/rennet.json
+_d = {
+    "root_Results":Path(ppkg.parent,"Results").as_posix()
+    }
+p= Path(ppkg,"apps","rennet.json")
+if not p.exists():
+    with open(p,"x") as f:
+        f.write(json.dumps(_d))
+else:
+    pass
+        
 setup(
     name=name,
     version=version,
