@@ -1,0 +1,24 @@
+# LaTeX output files
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.synctex(busy)
+*.run.xml
+
+# Compiled PDFs
+*.pdf
+
+# Editor files
+*.swp
+*~
+.DS_Store
+
+# Biber temp files
+*_blx.aux
+*.bcf
