@@ -35,26 +35,6 @@ def make_filetree(root_Results,*, train_name):
 
 
 
-def get_config(train_name:str):
-    """基本配置, return as dict
-    """
-    
-    img_size = 128  # 如果只想快速实验，可以改为64
-    batch_size = 16  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
-    embedding_size = 128
-    channels = [1, 1, 2, 2, 4, 4]
-    blocks = 2  # 如果显存不够，可以降低为1
-
-    # 超参数选择
-    T = 1000
-    alpha = np.sqrt(1 - 0.02 * np.arange(1, T + 1) / T)
-    beta = np.sqrt(1 - alpha**2)
-    bar_alpha = np.cumprod(alpha)
-    bar_beta = np.sqrt(1 - bar_alpha**2)
-    sigma = beta.copy()
-    # sigma *= np.pad(bar_beta[:-1], [1, 0]) / bar_beta
-    
-    return dict(locals())
 
 def get_imgs(datasets =["CelebAHQ256_2"]):
     """nparry of imgs"""
@@ -137,10 +117,30 @@ def sample_inter(model, path, n=4, k=8, sep=10, t0=500, *, imgs, img_size, beta,
                    sep:img_size * (j + 2) + sep] = x_rec_samples[ij]
     imwrite(path, figure)
 
+# Settings
+def get_config(train_name:str):
+    """基本配置, return as dict
+    """
+    
+    img_size = 128  # 如果只想快速实验，可以改为64
+    batch_size = 16  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
+    embedding_size = 128
+    channels = [1, 1, 2, 2, 4, 4]
+    blocks = 2  # 如果显存不够，可以降低为1
 
+    # 超参数选择
+    T = 1000
+    alpha = np.sqrt(1 - 0.02 * np.arange(1, T + 1) / T)
+    beta = np.sqrt(1 - alpha**2)
+    bar_alpha = np.cumprod(alpha)
+    bar_beta = np.sqrt(1 - bar_alpha**2)
+    sigma = beta.copy()
+    # sigma *= np.pad(bar_beta[:-1], [1, 0]) / bar_beta
+    
+    return dict(locals())
 
 if __name__ == '__main__':
-    DEBUG = True
+    DEBUG = False
     train_name = "ddpm2__v2" if not DEBUG else "ddpm2__v2__try"
     
     from MyDDPM.apps.ddpm2_m import get_model, Trainer
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     
     logdir = make_filetree(root_Results,train_name=train_name)
     
-    imgs =get_imgs(datasets = ["CelebAHQ256","CelebAHQ_valid"]) if not DEBUG else get_imgs(datasets = ["CelebAHQ256_2"]) 
+    imgs =get_imgs(datasets = ["CelebAHQ256","CelebAHQ256_valid"]) if not DEBUG else get_imgs(datasets = ["CelebAHQ256_2"]) 
     model = call_by_inspect( get_model, config)
     
     # model.load_weights('model.ema.weights') # if want continue
@@ -158,8 +158,8 @@ if __name__ == '__main__':
                     logdir)
     model.fit(
         call_by_inspect(data_generator, config,  imgs=imgs),
-        steps_per_epoch=2000,
-        epochs=10000 if not DEBUG else 14,  # 只是预先设置足够多的epoch数，可以自行Ctrl+C中断
+        steps_per_epoch=30000, # ori:2000
+        epochs=1000 if not DEBUG else 14,  # 只是预先设置足够多的epoch数，可以自行Ctrl+C中断
         callbacks=[trainer]
     )
     
