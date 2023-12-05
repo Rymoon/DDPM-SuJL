@@ -2,6 +2,7 @@
 *.zip
 *.weights
 Results
+Datasets
 __pycache__
 .vscode
 *.egg-info

@@ -15,19 +15,19 @@ Example of apps/rennet.json:
     "root_Results":"/home/tjrym/workspace/DDPM-SuJL/Results",
     "datasets":{
         "CelebAHQ256":{
-            "imgs":"/home/tjrym/workspace/Dataset/CelebAHQ/data256x256/",
+            "imgs":"CelebAHQ/data256x256/",
             "suffix":"jpg"
             },
         "CelebAHQ256_valid":{
-            "imgs":"/home/tjrym/workspace/Dataset/CelebAHQ/data256x256_valid/",
+            "imgs":"CelebAHQ/data256x256_valid/",
             "suffix":"jpg"
         },
         "CelebAHQ256_1":{
-            "imgs":"/home/tjrym/workspace/Dataset/CelebAHQ_1/",
+            "imgs":"CelebAHQ_1/",
             "suffix":"jpg"
         },
         "CelebAHQ256_2":{
-            "imgs":"/home/tjrym/workspace/Dataset/CelebAHQ_2/",
+            "imgs":"CelebAHQ_2/",
             "suffix":"jpg"
         }
     }
@@ -39,6 +39,10 @@ with open(Path(Path(__file__).parent,f"{Path(__file__).stem}.json").as_posix()) 
 
 root_Results=  _d["root_Results"]
 datasets = _d["datasets"]
+import MyDDPM
+_p = Path(Path(MyDDPM.__file__).parent.parent,"Datasets")
+for k,v in datasets.items():
+    v["imgs"] = Path(_p,v["imgs"]).as_posix()
 
 '''
 2021-2-5, RenNet/framework/Core/RyCore/__init__
