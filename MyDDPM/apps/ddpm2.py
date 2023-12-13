@@ -9,8 +9,8 @@ gpuid = "2"
 os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpuid}"
 
 from MyDDPM.apps.ddpm2_h import imwrite, list_pictures, imread, create_next_version_dir
-from MyDDPM.apps.rennet import call_by_inspect, getitems_as_dict, root_Results
-import MyDDPM.apps.rennet as rennet
+from ren_utils.rennet import call_by_inspect, getitems_as_dict, root_Results
+import ren_utils.rennet as rennet
 
 from tqdm import tqdm
 import numpy as np
