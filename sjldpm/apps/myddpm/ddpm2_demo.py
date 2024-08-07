@@ -22,13 +22,18 @@ def imwrite(path, figure):
     figure = np.round(figure, 0).astype('uint8')
     cv2.imwrite(path, figure)
 
-def data_generator(imgs,*, img_size, batch_size, T, bar_alpha, bar_beta):
-    """图片读取
+def data_generator(dataset,*, batch_size, T, bar_alpha, bar_beta):
     """
+    `dataset`, allow:
+    * dataset[i] -> ndarray () 
+    * len(dataset)-> int
+    """
+    assert hasattr(dataset,"__getitem__")
+    assert hasattr(dataset,"__len__")
     batch_imgs = []
     while True:
-        for i in np.random.permutation(len(imgs)):
-            batch_imgs.append(imread(imgs[i], img_size))
+        for i in np.random.permutation(len(dataset)):
+            batch_imgs.append(dataset[i])
             if len(batch_imgs) == batch_size:
                 batch_imgs = np.array(batch_imgs)
                 batch_steps = np.random.choice(T, batch_size)
@@ -67,7 +72,7 @@ def get_config(config_name:str):
     """基本配置, return as dict
     """
     if config_name == "sjl":
-        img_size = 128  # 如果只想快速实验，可以改为64
+        resize_size = (128,128)  # 如果只想快速实验，可以改为64
         batch_size = 16  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
         embedding_size = 128
         channels = [1, 1, 2, 2, 4, 4]
@@ -81,12 +86,30 @@ def get_config(config_name:str):
         bar_beta = np.sqrt(1 - bar_alpha**2)
         sigma = beta.copy()
         # sigma *= np.pad(bar_beta[:-1], [1, 0]) / bar_beta
+    else:
+        raise Exception(config_name)
     _config = dict(locals())
-    config = {k:v for k,v in _config if k[0]!="_"}
+    config = {k:v for k,v in _config.items() if k[0]!="_"}
     
         
     return config
 
+from sjldpm.apps.reference.ddpm2_h import imread,list_pictures
+from ren_utils import rennet
+class CelebAHQ:
+    def __init__(self,image_resize):
+        img_path_list = []
+        for _name in ["CelebAHQ256","CelebAHQ256_valid"]:
+            img_path_list += list_pictures(rennet.datasets[_name]["imgs"],rennet.datasets[_name]["suffix"] )
+        np.random.shuffle(img_path_list)
+        self.img_path_list = img_path_list
+        
+        self.image_resize = image_resize
+    def __getitem__(self,i):
+        return imread( self.img_path_list[i], self.image_resize)
+    
+    def __len__(self):
+        return len(self.img_path_list)
 
 from sjldpm.apps.reference.ddpm2_m import get_model, Trainer
 if __name__ == "__main__":
@@ -99,10 +122,20 @@ if __name__ == "__main__":
     
     train_name = f"{pkg.__name__}-{cfn}__{dm_name}__{config_name}"
     
-    log_dir = Path(Path(pkg.__file__).parent,"Results",train_name)
-    log_dir.mkdir(parents=True,exist_ok=True)
-    
-    config = get_config(train_name)
+    log_dir = Path(Path(pkg.__file__).parent.parent,"Results",train_name)
+    _versions = os.listdir(Path(log_dir))
+    if len(_versions) ==0:
+        log_dir = Path(log_dir,"version_0")
+        log_dir.mkdir(parents=True,exist_ok=True)
+    else:
+        _versions.sort(key = lambda s:int(s.split("_")[1])) # ascend
+        next_version_int = int(_versions[-1].split("_")[1])+1
+        log_dir = Path(log_dir,f"version_{next_version_int}")
+        log_dir.mkdir(parents=True,exist_ok=True)
+
+    config = get_config(config_name)
+    dataset = CelebAHQ(config["resize_size"])
+    dataloader = call_by_inspect(data_generator, config,  dataset = dataset)
     
     model = call_by_inspect( get_model, config)
     
@@ -110,7 +143,7 @@ if __name__ == "__main__":
                     lambda model, path: sample(model, path, n=4, z_samples=None, t0=0, img_size=config["img_size"], beta=config["beta"], bar_beta=config["bar_beta"], alpha=config["alpha"], sigma=config["sigma"], T=config["T"]), 
                     log_dir)
     model.fit(
-        call_by_inspect(data_generator, config,  imgs=imgs),
+        dataloader,
         steps_per_epoch=30000, # ori:2000
         epochs=1000 if not DEBUG else 14,  # 只是预先设置足够多的epoch数，可以自行Ctrl+C中断
         callbacks=[trainer]
