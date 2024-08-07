@@ -2,14 +2,14 @@
 # python 3.7 will failed
 # tf1.15 defaultly only on cuda10. BUT rtx30xx need cu11+
 # pip install --user nvidia-pyindex
-# pip install --user nvidia-tensorflow[horovod]
+# pip install --user nvidia-tensorflow[horovod] # this is tf1.15+py3.8+gpu by default. good for RTX 30xx 40xx device
+# See https://blog.luomoe.com/blog/Technology20230729/
 # The above will install cuda cudnn, tensorflow(cpu and gpu).
 - dependecies:
   - pip:
-    - tensorflow-gpu==1.15
-    - keras==2.3.1
+    # - tensorflow-gpu==1.15
+    # - keras==2.3.1
     - opencv-python
-    # - bert4keras=0.11.4 from github
     - protobuf=3.19.4
     - tqdm
     - ipykernel
@@ -17,4 +17,5 @@
     - regex
     - Levenshtein
     - matplotlib
-    - -e git+https://github.com/bojone/bert4keras
+    - rich
+    # - -e git+https://github.com/bojone/bert4keras # Use the bert4keras on github not pip repo

@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 import json
 
-name = "MyDDPM"
+name = "sjldpm"
 version = "0.1"
 ppkg = Path(Path(__file__).parent,name)
 
