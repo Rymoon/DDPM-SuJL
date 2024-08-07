@@ -25,7 +25,7 @@ def create_next_version_dir(path):
     next_version_dir.mkdir(exist_ok=True)
     return str(next_version_dir)
 
-def imread(f, img_size, crop_size=None):
+def imread(f, resize_size, crop_size=None):
     """读取图片
     """
     x = cv2.imread(f)
@@ -37,8 +37,8 @@ def imread(f, img_size, crop_size=None):
     height_x = (height - crop_size + 1) // 2
     width_x = (width - crop_size + 1) // 2
     x = x[height_x:height_x + crop_size, width_x:width_x + crop_size]
-    if x.shape[:2] != (img_size, img_size):
-        x = cv2.resize(x, (img_size, img_size))
+    if x.shape[:2] != resize_size:
+        x = cv2.resize(x, resize_size)
     x = x.astype('float32')
     x = x / 255 * 2 - 1
     return x

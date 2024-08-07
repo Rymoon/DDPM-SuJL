@@ -111,18 +111,53 @@ class CelebAHQ:
     def __len__(self):
         return len(self.img_path_list)
 
+class STL10:
+    def __init__(self,image_resize,crop_size=None):
+        c =3
+        h=w=96
+        proot = Path(Path(pkg.__file__).parent.parent,f"Datasets/STL10/stl10_binary/")
+
+        _x = np.fromfile(Path(proot,"train_X.bin").as_posix(),dtype=np.uint8)
+        _x = _x.reshape(-1,c,h,w).transpose(0,3,2,1) #  ... and swap h and w.
+
+        # _y = np.fromfile(Path(proot,"train_y.bin"),dtype=np.uint8)
+        
+        self.img_ndarray = _x
+        
+        self.image_resize = image_resize
+        self.crop_size = crop_size
+    def __getitem__(self,i):
+        x = self.img_ndarray[i] # HWC
+        height, width = x.shape[:2]
+        if self.crop_size is None:
+            crop_size = min([height, width])
+        else:
+            crop_size = min([crop_size, height, width])
+        height_x = (height - crop_size + 1) // 2
+        width_x = (width - crop_size + 1) // 2
+        x = x[height_x:height_x + crop_size, width_x:width_x + crop_size]
+        if x.shape[:2] != self.image_resize :
+            x = cv2.resize(x, self.image_resize )
+        x = x.astype('float32')
+        x = x / 255 * 2 - 1
+        return x
+    
+    def __len__(self):
+        return len(self.img_ndarray)
+
 from sjldpm.apps.reference.ddpm2_m import get_model, Trainer
 if __name__ == "__main__":
     DEBUG = False
-    gpuid = 2
+    gpuid = 0
     os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpuid}"
     
-    dm_name = "celebahq"
+    dm_name = "stl10"
     config_name = "sjl"
     
     train_name = f"{pkg.__name__}-{cfn}__{dm_name}__{config_name}"
     
     log_dir = Path(Path(pkg.__file__).parent.parent,"Results",train_name)
+    log_dir .mkdir(parents=True,exist_ok=True)
     _versions = os.listdir(Path(log_dir))
     if len(_versions) ==0:
         log_dir = Path(log_dir,"version_0")
@@ -134,11 +169,16 @@ if __name__ == "__main__":
         log_dir.mkdir(parents=True,exist_ok=True)
 
     config = get_config(config_name)
-    dataset = CelebAHQ(config["resize_size"])
+    if dm_name == "celebahq":
+        dataset = CelebAHQ(config["resize_size"])
+    elif dm_name =="stl10":
+        dataset = STL10(config["resize_size"])
+    else:
+        raise Exception(dm_name)
     dataloader = call_by_inspect(data_generator, config,  dataset = dataset)
     
     model = call_by_inspect( get_model, config)
-    
+    print(" - log dir:",log_dir.as_posix())
     trainer = Trainer(model, model.optimizer, 
                     lambda model, path: sample(model, path, n=4, z_samples=None, t0=0, img_size=config["img_size"], beta=config["beta"], bar_beta=config["bar_beta"], alpha=config["alpha"], sigma=config["sigma"], T=config["T"]), 
                     log_dir)

@@ -113,14 +113,14 @@ def residual_block__vec(x, ch, t, embedding_size):
 
     return x
 
-def get_model(*,img_size, embedding_size, channels, blocks, T):
+def get_model(*,resize_size, embedding_size, channels, blocks, T):
     """
     Return compiled model;
     
     model.optimizer is valied;
     """
     # 搭建去噪模型
-    x_in = x = Input(shape=(img_size, img_size, 3))
+    x_in = x = Input(shape=(*resize_size, 3))
     t_in = Input(shape=(1,))
     t = Embedding(
         input_dim=T,
@@ -258,6 +258,8 @@ class Trainer(Callback):
         self.model.save_weights('model.ema.weights')
         self.sample(self.model, Path(self.logdir,f"samples/{(epoch+1):05d}.png").as_posix())
         self.optimizer.reset_old_weights()
+        
+        print(" - log_dir: ",Path(self.logdir).as_posix())
 
 
 class Trainer__vec(Callback):
