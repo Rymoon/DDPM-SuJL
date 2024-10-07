@@ -73,7 +73,7 @@ def get_config(config_name:str):
     """
     if config_name == "sjl":
         resize_size = (128,128)  # 如果只想快速实验，可以改为64
-        batch_size = 16  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
+        batch_size = 32  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
         embedding_size = 128
         channels = [1, 1, 2, 2, 4, 4]
         blocks = 2  # 如果显存不够，可以降低为1
@@ -148,10 +148,10 @@ class STL10:
 from sjldpm.apps.reference.ddpm2_m import get_model, Trainer
 if __name__ == "__main__":
     DEBUG = False
-    gpuid = 0
+    gpuid = 2
     os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpuid}"
     
-    dm_name = "stl10"
+    dm_name = "celebahq"
     config_name = "sjl"
     
     train_name = f"{pkg.__name__}-{cfn}__{dm_name}__{config_name}"
@@ -184,7 +184,7 @@ if __name__ == "__main__":
                     log_dir)
     model.fit(
         dataloader,
-        steps_per_epoch=30000, # ori:2000
+        steps_per_epoch=2000, # ori:2000
         epochs=1000 if not DEBUG else 14,  # 只是预先设置足够多的epoch数，可以自行Ctrl+C中断
         callbacks=[trainer]
     )
