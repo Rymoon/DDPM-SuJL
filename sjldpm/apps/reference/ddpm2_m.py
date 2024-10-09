@@ -252,6 +252,9 @@ class Trainer(Callback):
         self.logdir= logdir
         
     def on_epoch_end(self, epoch, logs=None):
+        print("\n Epoch end callback ... \n")
+        Path(self.logdir,f"weights").mkdir(exist_ok=True,parents=True)
+        Path(self.logdir,f"samples").mkdir(exist_ok=True,parents=True)
         self.model.save_weights(Path(self.logdir,f"weights/model.weights").as_posix())
         self.sample(self.model, Path(self.logdir,f"samples/{(epoch+1):05d}.png").as_posix())
         self.optimizer.apply_ema_weights()
@@ -274,6 +277,8 @@ class Trainer__vec(Callback):
         self.logdir= logdir
         
     def on_epoch_end(self, epoch, logs=None):
+        Path(self.logdir,f"weights").mkdir(exist_ok=True,parents=True)
+        Path(self.logdir,f"samples").mkdir(exist_ok=True,parents=True)
         self.model.save_weights(Path(self.logdir,f"weights/model.weights").as_posix())
         self.sample(self.model, Path(self.logdir,f"samples/{(epoch+1):05d}.npy").as_posix())
         self.optimizer.apply_ema_weights()

@@ -18,6 +18,7 @@ cfp = Path(__file__).parent
 def imwrite(path, figure):
     """归一化到了[-1, 1]的图片矩阵保存为图片
     """
+    print("Imwrite ...\n")
     figure = (figure + 1) / 2 * 255
     figure = np.round(figure, 0).astype('uint8')
     cv2.imwrite(path, figure)
@@ -47,6 +48,7 @@ def data_generator(dataset,*, batch_size, T, bar_alpha, bar_beta):
 def sample(model, path=None, n=4, z_samples=None, t0=0, *, img_size, beta, bar_beta, alpha, sigma, T ):
     """随机采样函数
     """
+    print("Start sampling ...\n")
     if z_samples is None:
         z_samples = np.random.randn(n**2, img_size, img_size, 3)
     else:
@@ -71,12 +73,45 @@ def sample(model, path=None, n=4, z_samples=None, t0=0, *, img_size, beta, bar_b
 def get_config(config_name:str):
     """基本配置, return as dict
     """
-    if config_name == "sjl":
-        resize_size = (128,128)  # 如果只想快速实验，可以改为64
+    if config_name == "sjl_64":
+        resize_size = (64,64)  # 如果只想快速实验，可以改为64
+        img_size = resize_size[0] # Assume Square
         batch_size = 16  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
         embedding_size = 128
         channels = [1, 1, 2, 2, 4, 4]
         blocks = 2  # 如果显存不够，可以降低为1
+
+        # 超参数选择
+        T = 1000
+        alpha = np.sqrt(1 - 0.02 * np.arange(1, T + 1) / T)
+        beta = np.sqrt(1 - alpha**2)
+        bar_alpha = np.cumprod(alpha)
+        bar_beta = np.sqrt(1 - bar_alpha**2)
+        sigma = beta.copy()
+        # sigma *= np.pad(bar_beta[:-1], [1, 0]) / bar_beta
+    elif config_name == "sjl_128":
+        resize_size = (128,128)  # 如果只想快速实验，可以改为64
+        img_size = resize_size[0] 
+        batch_size = 16  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
+        embedding_size = 128
+        channels = [1, 1, 2, 2, 4, 4]
+        blocks = 2  # 如果显存不够，可以降低为1
+
+        # 超参数选择
+        T = 1000
+        alpha = np.sqrt(1 - 0.02 * np.arange(1, T + 1) / T)
+        beta = np.sqrt(1 - alpha**2)
+        bar_alpha = np.cumprod(alpha)
+        bar_beta = np.sqrt(1 - bar_alpha**2)
+        sigma = beta.copy()
+        # sigma *= np.pad(bar_beta[:-1], [1, 0]) / bar_beta
+    elif config_name == "sjl_256":
+        resize_size = (256,256)  # 如果只想快速实验，可以改为64
+        img_size = resize_size[0] 
+        batch_size = 16  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
+        embedding_size = 128
+        channels = [1, 1, 2, 2, 4, 4]
+        blocks = 1  # 如果显存不够，可以降低为1
 
         # 超参数选择
         T = 1000
@@ -148,13 +183,13 @@ class STL10:
 from sjldpm.apps.reference.ddpm2_m import get_model, Trainer
 if __name__ == "__main__":
     DEBUG = False
-    gpuid = 0
+    gpuid = 1
     os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpuid}"
     
-    dm_name = "stl10"
-    config_name = "sjl"
+    dm_name = "celebahq"
+    config_name = "sjl_64"
     
-    train_name = f"{pkg.__name__}-{cfn}__{dm_name}__{config_name}"
+    train_name = f"{pkg.__name__}-{cfn}__{dm_name}__{config_name}" if not DEBUG else f"{pkg.__name__}-DEBUG-{cfn}__{dm_name}__{config_name}" 
     
     log_dir = Path(Path(pkg.__file__).parent.parent,"Results",train_name)
     log_dir .mkdir(parents=True,exist_ok=True)
@@ -184,7 +219,7 @@ if __name__ == "__main__":
                     log_dir)
     model.fit(
         dataloader,
-        steps_per_epoch=30000, # ori:2000
+        steps_per_epoch=2000 if not DEBUG else 8, # ori:2000
         epochs=1000 if not DEBUG else 14,  # 只是预先设置足够多的epoch数，可以自行Ctrl+C中断
         callbacks=[trainer]
     )
