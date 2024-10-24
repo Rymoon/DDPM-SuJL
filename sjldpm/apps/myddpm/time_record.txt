@@ -1,0 +1,16 @@
+TF 1.15
+
+CelebAHQ 64, batchsize 32.
+Take 48GB VRAM
+3:10 per 500 batches;
+1ep=2000batch=13 min (at least)
+
+CelbAHQ 128, batchsize 32
+TAke 48GB VRAM
+500 batch = 9:10
+1ep =2000batch=37 min 
+
+1440min=1 day.
+Thus, 
+Celeb64, 100ep=1day
+Celeb128, 100ep=3day
