@@ -8,6 +8,7 @@ from pathlib import Path
 from tqdm import tqdm
 import numpy as np
 import cv2
+import tensorflow as tf
 
 from ren_utils.rennet import call_by_inspect 
 
@@ -76,7 +77,7 @@ def get_config(config_name:str):
     if config_name == "sjl_64":
         resize_size = (64,64)  # 如果只想快速实验，可以改为64
         img_size = resize_size[0] # Assume Square
-        batch_size = 16  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
+        batch_size = 32  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
         embedding_size = 128
         channels = [1, 1, 2, 2, 4, 4]
         blocks = 2  # 如果显存不够，可以降低为1
@@ -92,7 +93,7 @@ def get_config(config_name:str):
     elif config_name == "sjl_128":
         resize_size = (128,128)  # 如果只想快速实验，可以改为64
         img_size = resize_size[0] 
-        batch_size = 16  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
+        batch_size = 32  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
         embedding_size = 128
         channels = [1, 1, 2, 2, 4, 4]
         blocks = 2  # 如果显存不够，可以降低为1
@@ -267,12 +268,22 @@ if __name__ == "__main__":
     
     model = call_by_inspect( get_model, config)
     print(" - log dir:",log_dir.as_posix())
+
+    
+    # Tensorboard
+    tblosg_dir = Path(log_dir,"tb_logs")
+    tblosg_dir.mkdir(parents=True,exist_ok=True)
+    # file_writer = tf.summary.create_file_writer(tblosg_dir) 
+    tb_callback = tf.keras.callbacks.TensorBoard(log_dir=tblosg_dir.as_posix())
+
     trainer = Trainer(model, model.optimizer, 
                     lambda model, path: sample(model, path, n=4, z_samples=None, t0=0, img_size=config["img_size"], beta=config["beta"], bar_beta=config["bar_beta"], alpha=config["alpha"], sigma=config["sigma"], T=config["T"]), 
                     log_dir)
+    
+
     model.fit(
         dataloader,
         steps_per_epoch=2000 if not DEBUG else 8, # ori:2000
-        epochs=1000 if not DEBUG else 14,  # 只是预先设置足够多的epoch数，可以自行Ctrl+C中断
-        callbacks=[trainer]
+        epochs=10000 if not DEBUG else 14,  # 只是预先设置足够多的epoch数，可以自行Ctrl+C中断
+        callbacks=[trainer,tb_callback]
     )

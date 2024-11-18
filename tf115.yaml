@@ -5,6 +5,14 @@
 # pip install --user nvidia-tensorflow[horovod] # this is tf1.15+py3.8+gpu by default. good for RTX 30xx 40xx device
 # See https://blog.luomoe.com/blog/Technology20230729/
 # The above will install cuda cudnn, tensorflow(cpu and gpu).
+
+# The above defaultly install latest (cuda12/cu22 at 2024.10.20). You download and install a older version at https://developer.download.nvidia.cn/compute/redist/nvidia-tensorflow/
+# nv20.12 is to cuda 11.4 driver
+# Download the whl, OR use
+#  pip install nvidia-tensorflow[horovod]==1.15.4+nv20.12
+# To remove all from pip
+# The following command should do the trick:
+# pip freeze > requirements.txt && pip uninstall -r requirements.txt -y
 - dependecies:
   - pip:
     # - tensorflow-gpu==1.15
@@ -17,5 +25,36 @@
     - regex
     - Levenshtein
     - matplotlib
+    - numpy=1.18.5 # scipy/matplotlib will try to update numpy, and cause conflict to nvidia-tensorflow
     - rich
     # - -e git+https://github.com/bojone/bert4keras # Use the bert4keras on github not pip repo
+
+# The full instructions:
+# mam install python=3.8 -c conda-forge
+# pip install nvidia-pyindex
+# pip install nvidia-tensorflow[horovod]==1.15.4+nv20.12
+# pip install opencv-python protobuf==3.19.4 tqdm ipykernel ipython regex Levenshtein matplotlib rich numpy==1.18.5
+# pip install -e ../bert4keras numpy==1.18.5
+# pip install -e ../Ren-Utils
+# pip install -e .
+# pip freeze > requirements.txt
+# mam info
+
+
+
+###### install minicaonda
+# mkdir -p ~/miniconda3
+# wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+# bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+# rm ~/miniconda3/miniconda.sh
+
+###### Errors that not found libcupti.so.11
+# In the case of Cuda-11.3, lib64 folder is removed from /usr/local/cuda-11.2/extras/CUPTI/. All lib files are moved to ls /usr/local/cuda/lib64/ or ls /usr/local/cuda-11.3/lib64/.
+# List lib files on /usr/local/cuda/lib64/
+# $ ls /usr/local/cuda/lib64/libcupti*
+# I could not find libcupti.so.11.0. Other files should be there such that libcupti.so, libcupti.so.11.3, ...
+# Manage a link between libcupti.so.11.3 and libcupti.so.11.0 using a comand 'sudo ln -s'
+# $ sudo ln -s /usr/local/cuda-11.3/lib64/libcupti.so.11.3 /usr/local/cuda-11.3/lib64/libcupti.so.11.0
+# That is it. Enjoy
+###### If no sudo, then add to ENV
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/extras/CUPTI/lib64
