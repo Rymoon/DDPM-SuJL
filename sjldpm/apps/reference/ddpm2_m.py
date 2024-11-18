@@ -113,7 +113,7 @@ def residual_block__vec(x, ch, t, embedding_size):
 
     return x
 
-def get_model(*,resize_size, embedding_size, channels, blocks, T):
+def get_model(*,resize_size, embedding_size, channels, blocks, T, loss_f = l2_loss):
     """
     Return compiled model;
     
@@ -173,7 +173,7 @@ def get_model(*,resize_size, embedding_size, channels, blocks, T):
             40000: 0.1,
         }
     )
-    model.compile(loss=l2_loss, optimizer=optimizer)
+    model.compile(loss=loss_f, optimizer=optimizer)
 
     return model
 

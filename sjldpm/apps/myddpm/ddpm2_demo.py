@@ -121,6 +121,22 @@ def get_config(config_name:str):
         bar_beta = np.sqrt(1 - bar_alpha**2)
         sigma = beta.copy()
         # sigma *= np.pad(bar_beta[:-1], [1, 0]) / bar_beta
+    elif config_name == "mnist":
+        resize_size = (32,32)  
+        img_size = resize_size[0] 
+        batch_size = 32  # 如果显存不够，可以降低为16，但不建议低于16 # 16 for 24GB
+        embedding_size = 128
+        channels = [1, 1, 2, 4]
+        blocks = 2  # 如果显存不够，可以降低为1
+
+        # 超参数选择
+        T = 1000
+        alpha = np.sqrt(1 - 0.02 * np.arange(1, T + 1) / T)
+        beta = np.sqrt(1 - alpha**2)
+        bar_alpha = np.cumprod(alpha)
+        bar_beta = np.sqrt(1 - bar_alpha**2)
+        sigma = beta.copy()
+        # sigma *= np.pad(bar_beta[:-1], [1, 0]) / bar_beta
     else:
         raise Exception(config_name)
     _config = dict(locals())
@@ -180,14 +196,49 @@ class STL10:
     def __len__(self):
         return len(self.img_ndarray)
 
+import sjldpm
+class MNIST:
+    root_pkg = Path(sjldpm.__file__).parent
+    npz_path = Path(root_pkg,"../Datasets/MNIST/mnist.npz").as_posix()
+    def __init__(self,image_resize,digits=[0,1,2,3,4,5,6,7,8,9]):
+    
+        data_npz  = np.load(self.npz_path)
+        x_train = data_npz["x_train"]
+        y_train = data_npz["y_train"]
+        
+        index = []
+        for i in range(len(y_train)):
+            if y_train[i] in digits:
+                index.append(i)
+        
+        np.random.shuffle(index)
+        
+        x= (x_train/255)*2-1
+        x_= np.zeros((*image_resize,3,len(index)))
+        y_ = np.zeros(len(index))
+        for i in range(len(index)):
+            x_[:,:,0,i]= cv2.resize(x[index[i]],image_resize)
+            x_[:,:,1,i]= cv2.resize(x[index[i]],image_resize)
+            x_[:,:,2,i]= cv2.resize(x[index[i]],image_resize)
+            y_[i] = index[i]
+        self.x_ = x_
+        self.y_ = y_
+        self.index = index
+    def __len__(self):
+        return len(self.index)
+    
+    def __getitem__(self,i):
+        v = self.x_[:,:,:,i]
+        return v
+
 from sjldpm.apps.reference.ddpm2_m import get_model, Trainer
 if __name__ == "__main__":
     DEBUG = False
-    gpuid = 1
+    gpuid = 0
     os.environ["CUDA_VISIBLE_DEVICES"] = f"{gpuid}"
     
-    dm_name = "celebahq"
-    config_name = "sjl_64"
+    dm_name = "mnist0246"
+    config_name = "mnist"
     
     train_name = f"{pkg.__name__}-{cfn}__{dm_name}__{config_name}" if not DEBUG else f"{pkg.__name__}-DEBUG-{cfn}__{dm_name}__{config_name}" 
     
@@ -208,6 +259,8 @@ if __name__ == "__main__":
         dataset = CelebAHQ(config["resize_size"])
     elif dm_name =="stl10":
         dataset = STL10(config["resize_size"])
+    elif dm_name =="mnist0246":
+        dataset = MNIST(config["resize_size"],[0,2,4,6])
     else:
         raise Exception(dm_name)
     dataloader = call_by_inspect(data_generator, config,  dataset = dataset)

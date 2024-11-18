@@ -27,6 +27,7 @@ def create_next_version_dir(path):
 
 def imread(f, resize_size, crop_size=None):
     """读取图片
+    resize_size: tuple(h,w)
     """
     x = cv2.imread(f)
     height, width = x.shape[:2]
